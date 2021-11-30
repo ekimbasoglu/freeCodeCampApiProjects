@@ -3,8 +3,8 @@ const { Schema } = mongoose;
 
 const UrlSchema = new mongoose.Schema(
     {
-        number: { type: Number },
-        url: { type: String },
+        short_url: { type: Number },
+        original_url: { type: String },
     }
 );
 
