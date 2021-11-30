@@ -19,9 +19,16 @@ app.get("/", function (req, res) {
   res.sendFile(__dirname + '/views/index.html');
 });
 
+app.get('/api/', (req, res) => {
+  const date = new Date();
 
-// your first API endpoint... 
-app.get("/api/:date", async (req, res) => {
+  return res.json({
+    unix: date.getTime(),
+    utc: strftime('%a, %d %b %Y %H:%M:%S GMT', date)
+  });
+});
+
+app.get("/api/:date?", async (req, res) => {
   let param = req.params.date;
   let date = new Date();
 
@@ -32,12 +39,13 @@ app.get("/api/:date", async (req, res) => {
   }
 
   if (!date.getTime()) {
-    res.status.send({ error: "Invalid date given" })
+    res.send({ error: "Invalid Date" })
   }
 
+  let utc = strftime('%a, %d %b %Y %H:%M:%S GMT', date);
   res.send({
     unix: date.getTime(),
-    utc: strftime('%B %d, %Y', date)
+    utc
   });
 
 });
