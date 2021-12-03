@@ -14,17 +14,21 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }));
 
 mongoose.connect(process.env.MONGO_URL,
   {
     useNewUrlParser: true,
   }
 );
+
+
 // Get all the users
 app.get('/api/users', async (req, res) => {
-  let user = await User.find({});
-  res.json({ user });
+  let user = await User.find();
+  res.json(user);
 });
+
 
 
 // Create user
@@ -32,11 +36,7 @@ app.post('/api/users', async (req, res) => {
   const { username } = req.body;
 
   let user = await User.create({ username });
-  if (username) {
-    res.json({ username: user.username, _id: user._id });
-  } else {
-    res.status(400).json({ err: "There is no username" })
-  }
+  res.json({ username: user.username, _id: user._id });
 });
 
 
@@ -69,17 +69,32 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
 
 // Get user's exercise log 
 app.get('/api/users/:_id/logs', async (req, res) => {
-  const { _id } = req.params;  // User Id
-  // First find user
+  let { _id } = req.params;
+  let { from, to, limit } = req.query;
+
   let user = await User.findOne({ _id: _id });
-  // Find exercise
-  let exercise = await Exercise.find({ username: user.username });
-  let log = [];
-  for (let i = 0; i < exercise.length; i++) {
-    log.push(exercise[i]);
+
+  const query = Exercise.find({
+    username: user.username
+  })
+
+  if (limit) {
+    query.limit(Number(limit));
+  }
+  if (from) {
+    from = new Date(from)
+    query.find({ date: { $gte: from } })
+  }
+  if (to) {
+    to = new Date(to);
+    query.find({ date: { $lt: to } })
   }
 
-  let logs = log.map((a) => {
+  const exercise = await Promise.all([
+    Exercise.find(query).lean(),
+  ]);
+
+  let log = exercise[0].map((a) => {
     return {
       description: a.description,
       duration: a.duration,
@@ -90,9 +105,9 @@ app.get('/api/users/:_id/logs', async (req, res) => {
   res.status(200).send(
     {
       username: user.username,
-      count: exercise.length,
+      count: log.length,
       _id: user._id,
-      logs
+      log
     });
 })
 
